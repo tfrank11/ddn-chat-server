@@ -36,6 +36,7 @@ const app: Express = express();
 const port = Number(process.env.PORT) || 3001;
 
 const wss = new WebSocket.Server({ port });
+console.log("started websocket server on port ", port);
 
 wss.on("connection", (ws: WebSocket) => {
   console.log("New connection");
