@@ -1,5 +1,10 @@
 import { User } from "@supabase/supabase-js";
-import { IGetOrCreateAssistant, IGetSupabaseData, INote } from "./types";
+import {
+  IGetOrCreateAssistant,
+  IGetOrCreateThread,
+  IGetSupabaseData,
+  INote,
+} from "./types";
 
 export const getSupabaseData: IGetSupabaseData = async ({
   supabase,
@@ -30,6 +35,29 @@ export const getSupabaseData: IGetSupabaseData = async ({
   return { user, note };
 };
 
+export const getOrCreateThread: IGetOrCreateThread = async ({
+  supabase,
+  openAiClient,
+  note,
+}) => {
+  if (note.threadId) {
+    const thread = await openAiClient.beta.threads.retrieve(note.threadId);
+    return { thread };
+  }
+  const thread = await openAiClient.beta.threads.create();
+
+  const { error } = await supabase
+    .from("notes")
+    .update({ threadId: thread.id })
+    .eq("noteId", note.noteId);
+
+  if (error) {
+    throw error;
+  }
+
+  return { thread };
+};
+
 export const getOrCreateAssistant: IGetOrCreateAssistant = async ({
   supabase,
   openAiClient,
@@ -49,7 +77,7 @@ export const getOrCreateAssistant: IGetOrCreateAssistant = async ({
       : note.transcript;
 
   const instructions = `
-    Please answer questions about the document.
+    This assistant answers questions about the attached transcript/document. It is chipper and happy to help.
     Only use knowledge in this document. 
     If you cannot find an answer in the text, say you dont know. Do not make any inferences. 
     Only answer what you are 100% sure is true based on the text. 

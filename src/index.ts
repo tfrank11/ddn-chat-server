@@ -12,9 +12,14 @@ import {
   IChatServerRequest,
   INote,
 } from "./types";
-import { getOrCreateAssistant, getSupabaseData } from "./chat";
+import {
+  getOrCreateAssistant,
+  getOrCreateThread,
+  getSupabaseData,
+} from "./chat";
 import { Assistant } from "openai/resources/beta/assistants";
 import { Thread } from "openai/resources/beta/threads/threads";
+import { getMessagesFromThreadData } from "./utils";
 
 dotenv.config();
 
@@ -51,15 +56,22 @@ wss.on("connection", (ws: WebSocket) => {
           openAiClient,
           note: supabaseData.note,
         });
+        const threadData = await getOrCreateThread({
+          supabase,
+          openAiClient,
+          note: supabaseData.note,
+        });
 
         user = supabaseData.user;
-        console.log("Authed", user.id, user.email);
         assistant = openAiData.assistant;
-        thread = await openAiClient.beta.threads.create();
+        thread = threadData.thread;
+        const existingThreadMessages =
+          await openAiClient.beta.threads.messages.list(thread.id);
 
         const ackMsg: IChatServerLoginRes = {
           type: ChatResponseType.LOGIN,
           success: true,
+          messages: getMessagesFromThreadData(existingThreadMessages),
         };
         ws.send(JSON.stringify(ackMsg));
       } else if (message.type === ChatRequestType.MESSAGE) {
@@ -76,21 +88,19 @@ wss.on("connection", (ws: WebSocket) => {
           role: "user",
           content: message.message,
         });
-        await openAiClient.beta.threads.runs.createAndPoll(thread.id, {
-          assistant_id: assistant.id,
-        });
+        await openAiClient.beta.threads.runs.createAndPoll(
+          thread.id,
+          {
+            assistant_id: assistant.id,
+          },
+          { pollIntervalMs: 100 }
+        );
         const messagesResponse = await openAiClient.beta.threads.messages.list(
           thread.id
         );
         const msgResp: IChatServerMessageRes = {
           type: ChatResponseType.MESSAGE_UPDATE,
-          messages: messagesResponse.data.map((v) => {
-            return {
-              role: v.role,
-              //   TODO handle this better
-              text: v.content[0].type === "text" ? v.content[0].text.value : "",
-            };
-          }),
+          messages: getMessagesFromThreadData(messagesResponse),
         };
         ws.send(JSON.stringify(msgResp));
       } else {

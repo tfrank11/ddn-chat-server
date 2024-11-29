@@ -1,6 +1,7 @@
 import { SupabaseClient, User } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import { Assistant } from "openai/resources/beta/assistants";
+import { Thread } from "openai/resources/beta/threads/threads";
 
 // --------------- Note types ----------------
 export enum NoteType {
@@ -31,6 +32,7 @@ interface INoteBase {
   transcript: string;
   status: NoteStatus;
   assistantId?: string;
+  threadId?: string;
 }
 interface IYoutubeNote extends INoteBase {
   noteType: NoteType.YOUTUBE;
@@ -80,6 +82,7 @@ export enum ChatResponseType {
 export type IChatServerLoginRes = {
   type: ChatResponseType.LOGIN;
   success: boolean;
+  messages?: IChatMessage[];
 };
 
 export type IChatMessage = {
@@ -114,3 +117,9 @@ export type IGetOrCreateAssistant = (props: {
   note: INote;
   openAiClient: OpenAI;
 }) => Promise<{ assistant: Assistant }>;
+
+export type IGetOrCreateThread = (props: {
+  supabase: SupabaseClient;
+  note: INote;
+  openAiClient: OpenAI;
+}) => Promise<{ thread: Thread }>;
