@@ -33,7 +33,7 @@ const openAiClient = new OpenAI({
 });
 
 const app: Express = express();
-const port = Number(process.env.WS_PORT) || 3001;
+const port = Number(process.env.PORT) || 3001;
 
 const wss = new WebSocket.Server({ port });
 console.log("started websocket server on port ", port);
