@@ -9,6 +9,7 @@ export function getMessagesFromThreadData(
       role: v.role,
       //   TODO handle this better
       text: v.content[0].type === "text" ? v.content[0].text.value : "",
+      date: v.created_at,
     };
   });
 }

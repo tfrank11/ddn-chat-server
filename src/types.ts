@@ -88,6 +88,7 @@ export type IChatServerLoginRes = {
 export type IChatMessage = {
   role: "user" | "assistant";
   text: string;
+  date: number;
 };
 
 export type IChatServerMessageRes = {
